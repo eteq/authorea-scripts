@@ -9,7 +9,7 @@ Requires python >= 2.6 (3.x should work, too)
 
 The key assumptions are:
 * ``layout.md`` exists in the article (I think it always does in Authorea)
-* ``preamble.tex``, ``header.tex``, ``title.tex``, and
+* ``preamble.tex`` and/or``header.tex``, ``title.tex``, and
   ``bibliobgraphy/biblio.bib`` exist (I think these are created normally in a
     new Authorea article)
 * ``posttitle.tex`` exists.  This one you'll have to create, containing
@@ -96,8 +96,18 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                       'directory'.format(builddir))
 
     # generate the main tex file as a string
-    preamblein = get_input_string('preamble', localdir)
-    headerin = get_input_string('header', localdir)
+    if os.path.exists('preamble.tex'):
+        preamblein = get_input_string('preamble', localdir)
+    else:
+        preamblein = ''
+    if os.path.exists('header.tex'):
+        headerin = get_input_string('header', localdir)
+    else:
+        headerin = ''
+
+    if not headerin and not preamblein:
+        print("Neither preable nor header found!  Proceeding, but that's rather weird")
+
     bibloc = os.path.join(os.path.abspath(localdir), 'bibliography', 'biblio')
 
     titlecontent = []
@@ -186,4 +196,5 @@ if __name__ == '__main__':
     build_authorea_latex(args.localdir, args.build_dir, args.latex, args.bibtex,
                          args.filename, args.usetitle, args.usebibtex,
                          args.n_runs_after_bibtex, args.open_with)
+
 
