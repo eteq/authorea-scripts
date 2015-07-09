@@ -126,6 +126,8 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
             ls = l.strip()
             if ls == '':
                 pass
+            elif ls.endswith('.html') or ls.endswith('.htm'):
+                pass  # html files aren't latex-able
             elif ls.startswith('figures'):
                 sectioninputs.append(get_figure_string(ls, localdir))
             else:
