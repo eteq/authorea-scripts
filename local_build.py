@@ -49,11 +49,14 @@ FIGURE_TEMPLATE=r"""
 """.replace('{', '{{').replace('}', '}}').replace('<', '{').replace('>', '}')
 
 
-def get_input_string(filename, localdir):
+def get_input_string(filename, localdir, quotepath=True):
     if filename.endswith('.tex'):
         filename = filename[:-4]
-
-    return r'\input{' + os.path.join(os.path.abspath(localdir), filename) + '}'
+    if quotepath:
+        quote_chr = '"'
+    else:
+        quote_chr = ''
+    return r'\input{' + quote_chr + os.path.join(os.path.abspath(localdir), filename) + quote_chr + '}'
 
 
 def get_figure_string(filename, localdir):
