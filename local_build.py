@@ -14,6 +14,7 @@ The key assumptions are:
     new Authorea article)
 * ``posttitle.tex`` exists.  This one you'll have to create, containing
   everything you want after the title but before the beginning of the document.
+  If it doesn't exist that's ok too, it'll just be ignored.
 
 """
 
@@ -126,6 +127,8 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
             ls = l.strip()
             if ls == '':
                 pass
+            elif ls in ('posttitle.tex', 'title.tex', 'preamble.tex', 'header.tex'):
+                pass # skip any that have been processed above
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 pass  # html files aren't latex-able
             elif ls.startswith('figures'):
