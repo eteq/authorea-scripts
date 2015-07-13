@@ -91,7 +91,7 @@ def get_figure_string(filename, localdir):
 
 
 def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
-                         usetitle, dobibtex, npostbibcalls, openwith):
+                         usetitle, dobibtex, npostbibcalls, openwith, titleinput):
     if not os.path.exists(builddir):
         os.mkdir(builddir)
 
@@ -116,7 +116,12 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
 
     titlecontent = []
     if usetitle:
-        titlecontent.append(r'\title{' + get_input_string('title', localdir) + '}')
+        if titleinput:
+            titlestr = get_input_string('title', localdir)
+        else:
+            with open(os.path.join(os.path.abspath(localdir), 'title.tex')) as f:
+                titlestr = f.read()
+        titlecontent.append(r'\title{' + titlestr + '}')
     if os.path.exists(os.path.join(os.path.abspath(localdir), 'posttitle.tex')):
         titlecontent.append(get_input_string('posttitle', localdir))
     titlecontent = '\n'.join(titlecontent)
@@ -193,6 +198,12 @@ if __name__ == '__main__':
                         help='Provide this to not run bibtex.')
     parser.add_argument('--no-title', action='store_false', dest='usetitle',
                         help='Provide this to skip the title command.')
+    parser.add_argument('--title-input', action='store_true', dest='titleinput',
+                        help='Provide this to have the title included via the '
+                             '\\input command instead of directly in the '
+                             'generated tex file. This is useful because \\input'
+                             'sometimes prevents the title from being cased '
+                             'correctly.', default=False)
     parser.add_argument('--n-runs-after-bibtex', '-n', type=int, default=3,
                         help='The number of times to call latex after bibtex.')
     parser.add_argument('--open-with', '-o', default=None,
@@ -203,6 +214,4 @@ if __name__ == '__main__':
 
     build_authorea_latex(args.localdir, args.build_dir, args.latex, args.bibtex,
                          args.filename, args.usetitle, args.usebibtex,
-                         args.n_runs_after_bibtex, args.open_with)
-
-
+                         args.n_runs_after_bibtex, args.open_with, args.titleinput)
