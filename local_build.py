@@ -122,9 +122,6 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
             with open(os.path.join(os.path.abspath(localdir), 'title.tex')) as f:
                 titlestr = f.read()
         titlecontent.append(r'\title{' + titlestr + '}')
-    if os.path.exists(os.path.join(os.path.abspath(localdir), 'posttitle.tex')):
-        titlecontent.append(get_input_string('posttitle', localdir))
-    titlecontent = '\n'.join(titlecontent)
 
     sectioninputs = []
     with open(os.path.join(localdir, 'layout.md')) as f:
@@ -134,6 +131,9 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                 pass
             elif ls in ('posttitle.tex', 'title.tex', 'preamble.tex', 'header.tex'):
                 pass # skip any that have been processed above
+            elif ls in ('abstract.tex'):
+                # add abstract to title content
+                titlecontent.append(r'\begin{abstract}' + get_input_string('abstract', localdir)  + '\end{abstract}')
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 pass  # html files aren't latex-able
             elif ls.startswith('figures'):
@@ -141,6 +141,10 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
             else:
                 sectioninputs.append(get_input_string(ls, localdir))
     sectioninputs = '\n'.join(sectioninputs)
+
+    if os.path.exists(os.path.join(os.path.abspath(localdir), 'posttitle.tex')):
+        titlecontent.append(get_input_string('posttitle', localdir))
+    titlecontent = '\n'.join(titlecontent)
 
     maintexstr = MAIN_TEMPLATE.format(**locals())
 
