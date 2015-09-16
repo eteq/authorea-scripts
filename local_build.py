@@ -112,7 +112,8 @@ def get_figure_string(filename, localdir):
 
 
 def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
-                         usetitle, dobibtex, npostbibcalls, openwith, titleinput):
+                         usetitle, dobibtex, npostbibcalls, openwith, titleinput,
+                         dobuild):
     if not os.path.exists(builddir):
         os.mkdir(builddir)
 
@@ -174,29 +175,33 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
     if outname.endswith('.tex'):
         outname = outname[:-4]
 
-    #now actually run latex/bibtex
-    args = [latex_exec, outname + '.tex']
-    print('\n\RUNNING THIS COMMAND: "{0}"\n'.format(' '.join([latex_exec, outname + '.tex'])))
-    subprocess.check_call(args, cwd=builddir)
-    if dobibtex:
-        args = [bibtex_exec, outname]
-        print('\n\RUNNING THIS COMMAND: "{0}"\n'.format(' '.join([latex_exec, outname + '.tex'])))
-        subprocess.check_call(args, cwd=builddir)
-    for _ in range(npostbibcalls):
+    if dobuild:
+        #now actually run latex/bibtex
         args = [latex_exec, outname + '.tex']
         print('\n\RUNNING THIS COMMAND: "{0}"\n'.format(' '.join([latex_exec, outname + '.tex'])))
         subprocess.check_call(args, cwd=builddir)
+        if dobibtex:
+            args = [bibtex_exec, outname]
+            print('\n\RUNNING THIS COMMAND: "{0}"\n'.format(' '.join([latex_exec, outname + '.tex'])))
+            subprocess.check_call(args, cwd=builddir)
+        for _ in range(npostbibcalls):
+            args = [latex_exec, outname + '.tex']
+            print('\n\RUNNING THIS COMMAND: "{0}"\n'.format(' '.join([latex_exec, outname + '.tex'])))
+            subprocess.check_call(args, cwd=builddir)
 
-    #launch the result if necessary
-    resultfn = outtexpath[:-4] + ('.pdf' if 'pdf' in latex_exec else '.dvi')
-    if openwith:
-        args = openwith.split(' ')
-        args.append(resultfn)
-        print('\nLaunching as:' + str(args), '\n')
-        subprocess.check_call(args)
+        #launch the result if necessary
+        resultfn = outtexpath[:-4] + ('.pdf' if 'pdf' in latex_exec else '.dvi')
+        if openwith:
+            args = openwith.split(' ')
+            args.append(resultfn)
+            print('\nLaunching as:' + str(args), '\n')
+            subprocess.check_call(args)
+        else:
+            msg = '\nBuild completed.  You can see the result in "{0}": "{1}"'
+            print(msg.format(builddir, resultfn), '\n')
     else:
-        msg = '\nBuild completed.  You can see the result in "{0}": "{1}"'
-        print(msg.format(builddir, resultfn), '\n')
+        msg = 'Preprocessing done but skipping build.  Main file:"{0}.tex"'
+        print(msg.format(os.path.join(builddir, outname)))
 
 
 if __name__ == '__main__':
@@ -230,9 +235,12 @@ if __name__ == '__main__':
     parser.add_argument('--open-with', '-o', default=None,
                         help='An executable to launch the output file with. '
                              'Default is to not do anything with it.')
+    parser.add_argument('--no-build', action='store_false', dest='dobuild',
+                        help='Only do preprocessing and skip all the build/open steps')
 
     args = parser.parse_args()
 
     build_authorea_latex(args.localdir, args.build_dir, args.latex, args.bibtex,
                          args.filename, args.usetitle, args.usebibtex,
-                         args.n_runs_after_bibtex, args.open_with, args.titleinput)
+                         args.n_runs_after_bibtex, args.open_with,
+                         args.titleinput, args.dobuild)
