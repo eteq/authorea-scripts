@@ -15,6 +15,10 @@ The key assumptions are:
 * ``posttitle.tex`` exists.  This one you'll have to create, containing
   everything you want after the title but before the beginning of the document.
   If it doesn't exist that's ok too, it'll just be ignored.
+* Figures are in the ``figures`` directory (where authorea puts them), and in
+  the correct place in the ``layout.md`` file.  A file named 'latexfigopts.json'
+  can specify a dictionary for additional figure options (see the
+  `FIGURE_DEFAULTS` below for what options that can be replaced).
 
 """
 
@@ -40,14 +44,16 @@ MAIN_TEMPLATE = r"""
 \end{{document}}
 """
 
-FIGURE_TEMPLATE=r"""
-\begin{figure}[h!]
+FIGURE_TEMPLATE = r"""
+\begin{<figure_env>}[<placement>]
 \begin{center}
-\includegraphics[width=1\columnwidth]{<figfn>}
+\includegraphics[width=<width>]{<figfn>}
 <caption>
 \end{center}
-\end{figure}
+\end{<figure_env>}
 """.replace('{', '{{').replace('}', '}}').replace('<', '{').replace('>', '}')
+
+FIGURE_DEFAULTS = {'placement': '', 'width': '1\columnwidth', 'figure_env': 'figure'}
 
 
 def get_input_string(filename, localdir, quotepath=True):
@@ -61,10 +67,10 @@ def get_input_string(filename, localdir, quotepath=True):
 
 
 def get_figure_string(filename, localdir):
+    import json
+
     figdir, figfn = os.path.split(filename)
     figdir = os.path.join(localdir, figdir)
-
-    print('rep', figfn)
 
     figfnbase = os.path.splitext(figfn)[0]
     figfn = os.path.join(figdir, figfn)
@@ -87,7 +93,22 @@ def get_figure_string(filename, localdir):
     else:
         caption = ''
 
-    return FIGURE_TEMPLATE.format(**locals())
+    optsfn = os.path.join(figdir, 'latexfigopts.json')
+    figopts = FIGURE_DEFAULTS.copy()
+    if os.path.exists(optsfn):
+        with open(optsfn) as f:
+            optsjson = json.load(f)
+        if not isinstance(optsjson, dict):
+            raise ValueError('File "{0}" does not have a top-level dict'.format(optsfn))
+        for k in FIGURE_DEFAULTS.keys():
+            v = optsjson.pop(k, None)
+            if v is not None:
+                figopts[k] = v
+        if len(optsjson) != 0:
+            raise ValueError('Entries in "{0}" that were not understood: {1}'.format(optsfn, optsjson))
+
+    figopts.update(locals())
+    return FIGURE_TEMPLATE.format(**figopts)
 
 
 def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
