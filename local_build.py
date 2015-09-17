@@ -109,19 +109,29 @@ def get_figure_string(filename, localdir):
     return FIGURE_TEMPLATE.format(**figopts)
 
 
-# if builddir and local dir are the same set the output paths to be relative paths
-# (this helps if sharing the created tex file with collaborator who cannot run this
-# script) otherwise use absolute paths. Alternatively, use the user defined option
-# for whether relative or absolute paths are used.
-def pathfcn(localdir, builddir, pathtype):
+# if builddir and local dir are the same set the paths used for input/include in
+# the output tex file to be relative paths (this helps if sharing the created
+# tex file with collaborator who don't use this script) otherwise use absolute
+# paths. Alternatively, use the user defined option for whether relative or
+# absolute paths are used.
+def get_in_path(localdir, builddir, pathtype=None):
+    """
+    Figure out the path for a file in ``localdir`` relative to ``builddir``, or
+    just use an absolute path dependeing on whether ``pathtype`` is 'rel' or
+    'abs'. Or if it is None, pick relative only if ``localdir`` is the same as
+    ``builddir``.
+    """
     if pathtype == 'rel':
         return os.path.relpath(localdir, builddir)
     elif pathtype == 'abs':
         return os.path.abspath(localdir)
-    elif builddir == localdir:
-        return os.path.relpath(localdir, builddir)
+    elif pathtype is None:
+        elif builddir == localdir:
+            return os.path.relpath(localdir, builddir)
+        else:
+            return os.path.abspath(localdir)
     else:
-        return os.path.abspath(localdir)
+        raise ValueError('Invalid pathtype: "{0}"'.format(pathtype))
 
 
 def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
@@ -136,25 +146,25 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
 
     # generate the main tex file as a string
     if os.path.exists(os.path.join(localdir, 'preamble.tex')):
-        preamblein = get_input_string('preamble', pathfcn(localdir, builddir, pathtype))
+        preamblein = get_input_string('preamble', get_in_path(localdir, builddir, pathtype))
     else:
         preamblein = ''
     if os.path.exists(os.path.join(localdir, 'header.tex')):
-        headerin = get_input_string('header', pathfcn(localdir, builddir, pathtype))
+        headerin = get_input_string('header', get_in_path(localdir, builddir, pathtype))
     else:
         headerin = ''
 
     if not headerin and not preamblein:
         print("Neither preable nor header found!  Proceeding, but that's rather weird")
 
-    bibloc = os.path.join(pathfcn(localdir, builddir, pathtype), 'bibliography', 'biblio')
+    bibloc = os.path.join(get_in_path(localdir, builddir, pathtype), 'bibliography', 'biblio')
 
     titlecontent = []
     if usetitle:
         if titleinput:
-            titlestr = get_input_string('title', pathfcn(localdir, builddir, pathtype))
+            titlestr = get_input_string('title', get_in_path(localdir, builddir, pathtype))
         else:
-            with open(os.path.join(pathfcn(localdir, builddir, 'abs'), 'title.tex')) as f:
+            with open(os.path.join(get_in_path(localdir, builddir, 'abs'), 'title.tex')) as f:
                 titlestr = f.read()
         titlecontent.append(r'\title{' + titlestr + '}')
 
@@ -168,17 +178,17 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                 pass # skip any that have been processed above
             elif ls in ('abstract.tex'):
                 # add abstract to title content
-                titlecontent.append(r'\begin{abstract}' + get_input_string('abstract', pathfcn(localdir, builddir, pathtype))  + '\end{abstract}')
+                titlecontent.append(r'\begin{abstract}' + get_input_string('abstract', get_in_path(localdir, builddir, pathtype))  + '\end{abstract}')
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 pass  # html files aren't latex-able
             elif ls.startswith('figures'):
-                sectioninputs.append(get_figure_string(ls, pathfcn(localdir, builddir, pathtype)))
+                sectioninputs.append(get_figure_string(ls, get_in_path(localdir, builddir, pathtype)))
             else:
-                sectioninputs.append(get_input_string(ls, pathfcn(localdir, builddir, pathtype)))
+                sectioninputs.append(get_input_string(ls, get_in_path(localdir, builddir, pathtype)))
     sectioninputs = '\n'.join(sectioninputs)
 
-    if os.path.exists(os.path.join(pathfcn(localdir, builddir, pathtype), 'posttitle.tex')):
-        titlecontent.append(get_input_string('posttitle', pathfcn(localdir, builddir, pathtype)))
+    if os.path.exists(os.path.join(get_in_path(localdir, builddir, pathtype), 'posttitle.tex')):
+        titlecontent.append(get_input_string('posttitle', get_in_path(localdir, builddir, pathtype)))
     titlecontent = '\n'.join(titlecontent)
 
     maintexstr = MAIN_TEMPLATE.format(**locals())
