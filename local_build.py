@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from __future__ import division, print_function
 
 """
@@ -32,7 +33,6 @@ MAIN_TEMPLATE = r"""
 
 {headerin}
 
-
 \begin{{document}}
 
 {titlecontent}
@@ -63,7 +63,7 @@ def get_input_string(filename, localdir, quotepath=True):
         quote_chr = '"'
     else:
         quote_chr = ''
-    return r'\input{' + quote_chr + os.path.join(os.path.abspath(localdir), filename) + quote_chr + '}'
+    return r'\input{' + quote_chr + os.path.join(localdir, filename) + quote_chr + '}'
 
 
 def get_figure_string(filename, localdir):
@@ -85,11 +85,9 @@ def get_figure_string(filename, localdir):
     if pdffn or epsfn:
         figfn = os.path.join(figdir, figfnbase)
 
-    figfn = os.path.abspath(figfn)
-
     capfn = os.path.join(figdir, 'caption.tex')
     if os.path.exists(capfn):
-        caption = r'\caption{ \protect\input{' + os.path.abspath(capfn) + '}}'
+        caption = r'\caption{ \protect\input{' + capfn + '}}'
     else:
         caption = ''
 
@@ -111,9 +109,24 @@ def get_figure_string(filename, localdir):
     return FIGURE_TEMPLATE.format(**figopts)
 
 
+# if builddir and local dir are the same set the output paths to be relative paths
+# (this helps if sharing the created tex file with collaborator who cannot run this
+# script) otherwise use absolute paths. Alternatively, use the user defined option
+# for whether relative or absolute paths are used.
+def pathfcn(localdir, builddir, pathtype):
+    if pathtype == 'rel':
+        return os.path.relpath(localdir, builddir)
+    elif pathtype == 'abs':
+        return os.path.abspath(localdir)
+    elif builddir == localdir:
+        return os.path.relpath(localdir, builddir)
+    else:
+        return os.path.abspath(localdir)
+
+
 def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                          usetitle, dobibtex, npostbibcalls, openwith, titleinput,
-                         dobuild):
+                         dobuild, pathtype):
     if not os.path.exists(builddir):
         os.mkdir(builddir)
 
@@ -122,31 +135,28 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                       'directory'.format(builddir))
 
     # generate the main tex file as a string
-    if os.path.exists('preamble.tex'):
-        preamblein = get_input_string('preamble', localdir)
+    if os.path.exists(os.path.join(localdir, 'preamble.tex')):
+        preamblein = get_input_string('preamble', pathfcn(localdir, builddir, pathtype))
     else:
         preamblein = ''
-    if os.path.exists('header.tex'):
-        headerin = get_input_string('header', localdir)
+    if os.path.exists(os.path.join(localdir, 'header.tex')):
+        headerin = get_input_string('header', pathfcn(localdir, builddir, pathtype))
     else:
         headerin = ''
 
     if not headerin and not preamblein:
         print("Neither preable nor header found!  Proceeding, but that's rather weird")
 
-    bibloc = os.path.join(os.path.abspath(localdir), 'bibliography', 'biblio')
+    bibloc = os.path.join(pathfcn(localdir, builddir, pathtype), 'bibliography', 'biblio')
 
     titlecontent = []
     if usetitle:
         if titleinput:
-            titlestr = get_input_string('title', localdir)
+            titlestr = get_input_string('title', pathfcn(localdir, builddir, pathtype))
         else:
-            with open(os.path.join(os.path.abspath(localdir), 'title.tex')) as f:
+            with open(os.path.join(pathfcn(localdir, builddir, 'abs'), 'title.tex')) as f:
                 titlestr = f.read()
         titlecontent.append(r'\title{' + titlestr + '}')
-    if os.path.exists(os.path.join(os.path.abspath(localdir), 'posttitle.tex')):
-        titlecontent.append(get_input_string('posttitle', localdir))
-    titlecontent = '\n'.join(titlecontent)
 
     sectioninputs = []
     with open(os.path.join(localdir, 'layout.md')) as f:
@@ -156,13 +166,20 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                 pass
             elif ls in ('posttitle.tex', 'title.tex', 'preamble.tex', 'header.tex'):
                 pass # skip any that have been processed above
+            elif ls in ('abstract.tex'):
+                # add abstract to title content
+                titlecontent.append(r'\begin{abstract}' + get_input_string('abstract', pathfcn(localdir, builddir, pathtype))  + '\end{abstract}')
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 pass  # html files aren't latex-able
             elif ls.startswith('figures'):
-                sectioninputs.append(get_figure_string(ls, localdir))
+                sectioninputs.append(get_figure_string(ls, pathfcn(localdir, builddir, pathtype)))
             else:
-                sectioninputs.append(get_input_string(ls, localdir))
+                sectioninputs.append(get_input_string(ls, pathfcn(localdir, builddir, pathtype)))
     sectioninputs = '\n'.join(sectioninputs)
+
+    if os.path.exists(os.path.join(pathfcn(localdir, builddir, pathtype), 'posttitle.tex')):
+        titlecontent.append(get_input_string('posttitle', pathfcn(localdir, builddir, pathtype)))
+    titlecontent = '\n'.join(titlecontent)
 
     maintexstr = MAIN_TEMPLATE.format(**locals())
 
@@ -237,10 +254,27 @@ if __name__ == '__main__':
                              'Default is to not do anything with it.')
     parser.add_argument('--no-build', action='store_false', dest='dobuild',
                         help='Only do preprocessing and skip all the build/open steps')
+    parser.add_argument('--relative-links', action='store_true', dest='rellinks',
+                        help='Always make links (to input files and figures) within '
+                             'the .tex file relative. Default is to do this if '
+                             'localdir and buildir are the same.')
+    parser.add_argument('--absolute-links', action='store_true', dest='abslinks',
+                        help='Always make links (to input files and figures) within '
+                             'the .tex file absolute. Default is to do this if '
+                             'localdir and buildir are different.')
 
     args = parser.parse_args()
+
+    pathtype = None
+    if args.rellinks and args.abslinks:
+        raise IOError('You must supply either "--relative-links" OR "--absolute-links".')
+    else:
+        if args.rellinks:
+            pathtype = 'rel'
+        if args.abslinks:
+            pathtype = 'abs'
 
     build_authorea_latex(args.localdir, args.build_dir, args.latex, args.bibtex,
                          args.filename, args.usetitle, args.usebibtex,
                          args.n_runs_after_bibtex, args.open_with,
-                         args.titleinput, args.dobuild)
+                         args.titleinput, args.dobuild, pathtype)
