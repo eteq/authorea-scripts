@@ -126,7 +126,7 @@ def get_in_path(localdir, builddir, pathtype=None):
     elif pathtype == 'abs':
         return os.path.abspath(localdir)
     elif pathtype is None:
-        elif builddir == localdir:
+        if builddir == localdir:
             return os.path.relpath(localdir, builddir)
         else:
             return os.path.abspath(localdir)
