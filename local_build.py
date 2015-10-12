@@ -35,6 +35,8 @@ MAIN_TEMPLATE = r"""
 
 \begin{{document}}
 
+{authorcontent}
+
 {titlecontent}
 
 {sectioninputs}
@@ -167,6 +169,10 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
             with open(os.path.join(get_in_path(localdir, builddir, 'abs'), 'title.tex')) as f:
                 titlestr = f.read()
         titlecontent.append(r'\title{' + titlestr + '}')
+
+    authorcontent = ""
+    with open(os.path.join(localdir, 'authors.tex')) as f:
+        authorcontent = r'\author{' + get_input_string('authors', get_in_path(localdir, builddir, pathtype)) + '}'
 
     sectioninputs = []
     with open(os.path.join(localdir, 'layout.md')) as f:
