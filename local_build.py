@@ -178,7 +178,7 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                 pass # skip any that have been processed above
             elif ls in ('abstract.tex'):
                 # add abstract to title content
-                titlecontent.append(r'\begin{abstract}' + get_input_string('abstract', get_in_path(localdir, builddir, pathtype))  + '\end{abstract}')
+                titlecontent.append(get_input_string('abstract', get_in_path(localdir, builddir, pathtype)))
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 pass  # html files aren't latex-able
             elif ls.startswith('figures'):
