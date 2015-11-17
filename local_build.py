@@ -187,8 +187,11 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                 sectioninputs.append(get_input_string(ls, get_in_path(localdir, builddir, pathtype)))
     sectioninputs = '\n'.join(sectioninputs)
 
-    if os.path.exists(os.path.join(get_in_path(localdir, builddir, pathtype), 'posttitle.tex')):
+    if os.path.exists(os.path.join(localdir, 'posttitle.tex')):
         titlecontent.append(get_input_string('posttitle', get_in_path(localdir, builddir, pathtype)))
+        # swap this to before the abstract
+        if r'\begin{abstract}' in titlecontent[-2]: # check second to last value and swap position
+            titlecontent[-1], titlecontent[-2] = titlecontent[-2], titlecontent[-1]
     titlecontent = '\n'.join(titlecontent)
 
     maintexstr = MAIN_TEMPLATE.format(**locals())
