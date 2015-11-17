@@ -66,16 +66,17 @@ def get_input_string(filename, localdir, quotepath=True):
     return r'\input{' + quote_chr + os.path.join(localdir, filename) + quote_chr + '}'
 
 
-def get_figure_string(filename, localdir):
+def get_figure_string(filename, absdir, localdir):
     import json
 
     figdir, figfn = os.path.split(filename)
     figdir = os.path.join(localdir, figdir)
+    figdirabs = os.path.join(absdir, figdir)
 
     figfnbase = os.path.splitext(figfn)[0]
     figfn = os.path.join(figdir, figfn)
-    pdffn = os.path.join(figdir, figfnbase + '.pdf')
-    epsfn = os.path.join(figdir, figfnbase + '.eps')
+    pdffn = os.path.join(figdirabs, figfnbase + '.pdf')
+    epsfn = os.path.join(figdirabs, figfnbase + '.eps')
 
     if not os.path.exists(pdffn):
         pdffn = None
@@ -86,7 +87,8 @@ def get_figure_string(filename, localdir):
         figfn = os.path.join(figdir, figfnbase)
 
     capfn = os.path.join(figdir, 'caption.tex')
-    if os.path.exists(capfn):
+    capfnabs = os.path.join(figdirabs, 'caption.tex')
+    if os.path.exists(capfnabs):
         caption = r'\caption{ \protect\input{' + capfn + '}}'
     else:
         caption = ''
@@ -182,7 +184,7 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 pass  # html files aren't latex-able
             elif ls.startswith('figures'):
-                sectioninputs.append(get_figure_string(ls, get_in_path(localdir, builddir, pathtype)))
+                sectioninputs.append(get_figure_string(ls, localdir, get_in_path(localdir, builddir, pathtype)))
             else:
                 sectioninputs.append(get_input_string(ls, get_in_path(localdir, builddir, pathtype)))
     sectioninputs = '\n'.join(sectioninputs)
