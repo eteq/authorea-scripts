@@ -70,13 +70,11 @@ def get_figure_string(filename, absdir, localdir):
     import json
 
     figdir, figfn = os.path.split(filename)
-    figdirlocal = os.path.join(localdir, figdir)
-    figdirabs = os.path.join(absdir, figdir)
 
     figfnbase = os.path.splitext(figfn)[0]
-    figfn = os.path.join(figdirlocal, figfn)
-    pdffn = os.path.join(figdirabs, figfnbase + '.pdf')
-    epsfn = os.path.join(figdirabs, figfnbase + '.eps')
+    figfn = os.path.join(localdir, figdir, figfn)
+    pdffn = os.path.join(absdir, figdir, figfnbase + '.pdf')
+    epsfn = os.path.join(absdir, figdir, figfnbase + '.eps')
 
     if not os.path.exists(pdffn):
         pdffn = None
@@ -84,16 +82,16 @@ def get_figure_string(filename, absdir, localdir):
         epsfn = None
 
     if pdffn or epsfn:
-        figfn = os.path.join(figdirlocal, figfnbase)
+        figfn = os.path.join(localdir, figdir, figfnbase)
 
-    capfn = os.path.join(figdirlocal, 'caption.tex')
-    capfnabs = os.path.join(figdirabs, 'caption.tex')
-    if os.path.exists(capfnabs):
+
+    if os.path.exists(os.path.join(absdir, figdir, 'caption.tex')):
+        capfn = os.path.join(localdir, figdir, 'caption.tex')
         caption = r'\caption{ \protect\input{' + capfn + '}}'
     else:
         caption = ''
 
-    optsfn = os.path.join(figdirlocal, 'latexfigopts.json')
+    optsfn = os.path.join(absdir, figdir, 'latexfigopts.json')
     figopts = FIGURE_DEFAULTS.copy()
     if os.path.exists(optsfn):
         with open(optsfn) as f:
