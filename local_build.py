@@ -57,17 +57,25 @@ FIGURE_TEMPLATE = r"""
 FIGURE_DEFAULTS = {'placement': '', 'width': '1\columnwidth', 'figure_env': 'figure'}
 
 
-def get_input_string(filename, localdir, quotepath=True):
-    if filename.endswith('.tex'):
-        filename = filename[:-4]
-    if quotepath:
-        quote_chr = '"'
+def get_input_string(filename, localdir, quotepath=True, flatten=False):
+    if flatten:
+        filepath = os.path.join(localdir, filename)
+        if not os.path.exists(filepath):
+            filepath = filepath + '.tex'
+
+        with open(filepath, 'r') as f:
+            return f.read()
     else:
-        quote_chr = ''
-    return r'\input{' + quote_chr + os.path.join(localdir, filename) + quote_chr + '}'
+        if filename.endswith('.tex'):
+            filename = filename[:-4]
+        if quotepath:
+            quote_chr = '"'
+        else:
+            quote_chr = ''
+        return r'\input{' + quote_chr + os.path.join(localdir, filename) + quote_chr + '}'
 
 
-def get_figure_string(filename, localdir, inputdir):
+def get_figure_string(filename, localdir, inputdir, flatten=False):
     import json
 
     figdir, figfn = os.path.split(filename)
@@ -87,8 +95,8 @@ def get_figure_string(filename, localdir, inputdir):
 
 
     if os.path.exists(os.path.join(localdir, figdir, 'caption.tex')):
-        capfn = os.path.join(inputdir, figdir, 'caption.tex')
-        caption = r'\caption{ \protect\input{' + capfn + '}}'
+        capinput = get_input_string('caption', os.path.join(inputdir, figdir), False, flatten=flatten)
+        caption = r'\caption{ \protect' + capinput.strip() + '}'
     else:
         caption = ''
 
@@ -147,11 +155,11 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
 
     # generate the main tex file as a string
     if os.path.exists(os.path.join(localdir, 'preamble.tex')):
-        preamblein = get_input_string('preamble', get_in_path(localdir, builddir, pathtype))
+        preamblein = get_input_string('preamble', get_in_path(localdir, builddir, pathtype), flatten=flatten)
     else:
         preamblein = ''
     if os.path.exists(os.path.join(localdir, 'header.tex')):
-        headerin = get_input_string('header', get_in_path(localdir, builddir, pathtype))
+        headerin = get_input_string('header', get_in_path(localdir, builddir, pathtype), flatten=flatten)
     else:
         headerin = ''
 
@@ -163,7 +171,7 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
     titlecontent = []
     if usetitle:
         if titleinput:
-            titlestr = get_input_string('title', get_in_path(localdir, builddir, pathtype))
+            titlestr = get_input_string('title', get_in_path(localdir, builddir, pathtype), flatten=flatten)
         else:
             with open(os.path.join(get_in_path(localdir, builddir, 'abs'), 'title.tex')) as f:
                 titlestr = f.read()
@@ -179,17 +187,18 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                 pass # skip any that have been processed above
             elif ls in ('abstract.tex'):
                 # add abstract to title content
-                titlecontent.append(r'\begin{abstract}' + get_input_string('abstract', get_in_path(localdir, builddir, pathtype))  + '\end{abstract}')
+                titlein = get_input_string('abstract', get_in_path(localdir, builddir, pathtype), flatten=flatten)
+                titlecontent.append(r'\begin{abstract}' + titlein  + '\end{abstract}')
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 pass  # html files aren't latex-able
             elif ls.startswith('figures'):
-                sectioninputs.append(get_figure_string(ls, localdir, get_in_path(localdir, builddir, pathtype)))
+                sectioninputs.append(get_figure_string(ls, localdir, get_in_path(localdir, builddir, pathtype), flatten=flatten))
             else:
-                sectioninputs.append(get_input_string(ls, get_in_path(localdir, builddir, pathtype)))
+                sectioninputs.append(get_input_string(ls, get_in_path(localdir, builddir, pathtype), flatten=flatten))
     sectioninputs = '\n'.join(sectioninputs)
 
     if os.path.exists(os.path.join(localdir, 'posttitle.tex')):
-        titlecontent.append(get_input_string('posttitle', get_in_path(localdir, builddir, pathtype)))
+        titlecontent.append(get_input_string('posttitle', get_in_path(localdir, builddir, pathtype), flatten=flatten))
         # swap this to before the abstract
         if r'\begin{abstract}' in titlecontent[-2]: # check second to last value and swap position
             titlecontent[-1], titlecontent[-2] = titlecontent[-2], titlecontent[-1]
@@ -282,13 +291,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     pathtype = None
+
+    if args.flatten and (args.rellinks or args.abslinks):
+        print('You cannot use both "--flatten" and either "--relative-links" '
+              'or "--absolute-links".')
+        sys.exit(1)
+
     if args.rellinks and args.abslinks:
         print('You must use either "--relative-links", "--absolute-links", or '
               'neither, but not both.')
-        sys.exit(1)
-    elif args.flatten:
-        print('You cannot use both "--flatten and" either "--relative-links" '
-              'or "--absolute-links".')
         sys.exit(1)
     else:
         if args.rellinks:
