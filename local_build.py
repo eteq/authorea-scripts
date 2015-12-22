@@ -24,6 +24,7 @@ The key assumptions are:
 """
 
 import os
+import sys
 import subprocess
 
 
@@ -136,7 +137,7 @@ def get_in_path(localdir, builddir, pathtype=None):
 
 def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                          usetitle, dobibtex, npostbibcalls, openwith, titleinput,
-                         dobuild, pathtype):
+                         dobuild, pathtype, flatten):
     if not os.path.exists(builddir):
         os.mkdir(builddir)
 
@@ -275,12 +276,20 @@ if __name__ == '__main__':
                         help='Always make links (to input files and figures) within '
                              'the .tex file absolute. Default is to do this if '
                              'localdir and buildir are different.')
+    parser.add_argument('--flatten', '-t', action='store_true',
+                        help='Directly inputs the content from the files instead of .')
 
     args = parser.parse_args()
 
     pathtype = None
     if args.rellinks and args.abslinks:
-        raise IOError('You must supply either "--relative-links" OR "--absolute-links".')
+        print('You must use either "--relative-links", "--absolute-links", or '
+              'neither, but not both.')
+        sys.exit(1)
+    elif args.flatten:
+        print('You cannot use both "--flatten and" either "--relative-links" '
+              'or "--absolute-links".')
+        sys.exit(1)
     else:
         if args.rellinks:
             pathtype = 'rel'
@@ -290,4 +299,4 @@ if __name__ == '__main__':
     build_authorea_latex(args.localdir, args.build_dir, args.latex, args.bibtex,
                          args.filename, args.usetitle, args.usebibtex,
                          args.n_runs_after_bibtex, args.open_with,
-                         args.titleinput, args.dobuild, pathtype)
+                         args.titleinput, args.dobuild, pathtype, args.flatten)
