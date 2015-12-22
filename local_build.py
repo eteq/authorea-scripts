@@ -70,11 +70,11 @@ def get_figure_string(filename, absdir, localdir):
     import json
 
     figdir, figfn = os.path.split(filename)
-    figdir = os.path.join(localdir, figdir)
+    figdirlocal = os.path.join(localdir, figdir)
     figdirabs = os.path.join(absdir, figdir)
 
     figfnbase = os.path.splitext(figfn)[0]
-    figfn = os.path.join(figdir, figfn)
+    figfn = os.path.join(figdirlocal, figfn)
     pdffn = os.path.join(figdirabs, figfnbase + '.pdf')
     epsfn = os.path.join(figdirabs, figfnbase + '.eps')
 
@@ -84,16 +84,16 @@ def get_figure_string(filename, absdir, localdir):
         epsfn = None
 
     if pdffn or epsfn:
-        figfn = os.path.join(figdir, figfnbase)
+        figfn = os.path.join(figdirlocal, figfnbase)
 
-    capfn = os.path.join(figdir, 'caption.tex')
+    capfn = os.path.join(figdirlocal, 'caption.tex')
     capfnabs = os.path.join(figdirabs, 'caption.tex')
     if os.path.exists(capfnabs):
         caption = r'\caption{ \protect\input{' + capfn + '}}'
     else:
         caption = ''
 
-    optsfn = os.path.join(figdir, 'latexfigopts.json')
+    optsfn = os.path.join(figdirlocal, 'latexfigopts.json')
     figopts = FIGURE_DEFAULTS.copy()
     if os.path.exists(optsfn):
         with open(optsfn) as f:
