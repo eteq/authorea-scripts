@@ -20,11 +20,14 @@ The key assumptions are:
   the correct place in the ``layout.md`` file.  A file named 'latexfigopts.json'
   can specify a dictionary for additional figure options (see the
   `FIGURE_DEFAULTS` below for what options that can be replaced).
+  If pdf or eps figures exist alongside referenced raster image files, they will
+  be favored over the raster format.
 
 """
 
 import os
 import sys
+import shutil
 import subprocess
 
 
@@ -75,23 +78,33 @@ def get_input_string(filename, localdir, quotepath=True, flatten=False):
         return r'\input{' + quote_chr + os.path.join(localdir, filename) + quote_chr + '}'
 
 
-def get_figure_string(filename, localdir, inputdir, flatten=False):
+def get_figure_string(filename, localdir, inputdir, flatten=False, copyto=False):
     import json
 
-    figdir, figfn = os.path.split(filename)
+    figdir, figname = os.path.split(filename)
 
-    figfnbase = os.path.splitext(figfn)[0]
-    figfn = os.path.join(inputdir, figdir, figfn)
-    pdffn = os.path.join(localdir, figdir, figfnbase + '.pdf')
-    epsfn = os.path.join(localdir, figdir, figfnbase + '.eps')
+    fignamebase = os.path.splitext(figname)[0]
+    figfn = os.path.join(inputdir, filename)
+    pdffn = os.path.join(localdir, figdir, fignamebase + '.pdf')
+    epsfn = os.path.join(localdir, figdir, fignamebase + '.eps')
 
-    if not os.path.exists(pdffn):
-        pdffn = None
-    if not os.path.exists(epsfn):
-        epsfn = None
+    if copyto:
+        figpath = os.path.join(localdir, filename)
+        if os.path.exists(pdffn):
+            figpath = pdffn
+            figfn = fignamebase
+        elif os.path.exists(epsfn):
+            figpath = epsfn
+            figfn = fignamebase
+        elif os.path.exists(figpath):
+            figfn = figname
+        else:
+            raise IOError('Could not find figure file {}'.format(figpath))
+        shutil.copy(figpath, os.path.join(copyto, os.path.split(figpath)[1]))
 
-    if pdffn or epsfn:
-        figfn = os.path.join(inputdir, figdir, figfnbase)
+    else:
+        if os.path.exists(pdffn) or os.path.exists(epsfn):
+            figfn = os.path.join(inputdir, figdir, fignamebase)
 
 
     if os.path.exists(os.path.join(localdir, figdir, 'caption.tex')):
@@ -145,7 +158,7 @@ def get_in_path(localdir, builddir, pathtype=None):
 
 def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                          usetitle, dobibtex, npostbibcalls, openwith, titleinput,
-                         dobuild, pathtype, flatten):
+                         dobuild, pathtype, flatten, copy_figs):
     if not os.path.exists(builddir):
         os.mkdir(builddir)
 
@@ -166,7 +179,13 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
     if not headerin and not preamblein:
         print("Neither preable nor header found!  Proceeding, but that's rather weird")
 
-    bibloc = os.path.join(get_in_path(localdir, builddir, pathtype), 'bibliography', 'biblio')
+
+    if copy_figs:
+        bibloc_abs = os.path.join(get_in_path(localdir, builddir, 'abs'), 'bibliography', 'biblio') + '.bib'
+        shutil.copy(bibloc_abs, os.path.join(builddir, os.path.split(bibloc_abs)[1]))
+        bibloc = 'biblio'
+    else:
+        bibloc = os.path.join(get_in_path(localdir, builddir, pathtype), 'bibliography', 'biblio')
 
     titlecontent = []
     if usetitle:
@@ -192,7 +211,9 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 pass  # html files aren't latex-able
             elif ls.startswith('figures'):
-                sectioninputs.append(get_figure_string(ls, localdir, get_in_path(localdir, builddir, pathtype), flatten=flatten))
+                inpath = get_in_path(localdir, builddir, pathtype)
+                sectioninputs.append(get_figure_string(ls, localdir, inpath, flatten=flatten,
+                                                       copyto=builddir if copy_figs else False))
             else:
                 sectioninputs.append(get_input_string(ls, get_in_path(localdir, builddir, pathtype), flatten=flatten))
     sectioninputs = '\n'.join(sectioninputs)
@@ -286,7 +307,11 @@ if __name__ == '__main__':
                              'the .tex file absolute. Default is to do this if '
                              'localdir and buildir are different.')
     parser.add_argument('--flatten', '-t', action='store_true',
-                        help='Directly inputs the content from the files instead of .')
+                        help=r'Directly includes the content from tex files '
+                             r'instead of using \input.')
+    parser.add_argument('--copy-figs', '-c', action='store_true',
+                        help='Copy figures and any bib files into the build '
+                             'directory and set includes to point to those copies.')
 
     args = parser.parse_args()
 
@@ -310,4 +335,5 @@ if __name__ == '__main__':
     build_authorea_latex(args.localdir, args.build_dir, args.latex, args.bibtex,
                          args.filename, args.usetitle, args.usebibtex,
                          args.n_runs_after_bibtex, args.open_with,
-                         args.titleinput, args.dobuild, pathtype, args.flatten)
+                         args.titleinput, args.dobuild, pathtype, args.flatten,
+                         args.copy_figs)
