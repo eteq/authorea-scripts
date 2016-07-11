@@ -25,11 +25,11 @@ The key assumptions are:
 
 """
 
+import re
 import os
 import sys
 import shutil
 import subprocess
-
 
 #lots of dobule-{}'s are here because we use it as a formatting template below
 MAIN_TEMPLATE = r"""
@@ -58,7 +58,6 @@ FIGURE_TEMPLATE = r"""
 """.replace('{', '{{').replace('}', '}}').replace('<', '{').replace('>', '}')
 
 FIGURE_DEFAULTS = {'placement': '', 'width': '1\columnwidth', 'figure_env': 'figure'}
-
 
 def get_input_string(filename, localdir, quotepath=True, flatten=False):
     if flatten:
@@ -172,13 +171,28 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
     else:
         preamblein = ''
     if os.path.exists(os.path.join(localdir, 'header.tex')):
-        headerin = get_input_string('header', get_in_path(localdir, builddir, pathtype), flatten=flatten)
+        with open(os.path.join(localdir, 'header.tex'), 'r') as h:
+            lines = h.readlines()
+        pdflines = []
+        pdflines.append(r'\newif\iflatexml\latexmlfalse'+'\n')
+        for l in lines:
+            if re.match(r'\\r*e*newcommand', l):
+                rl = re.search('(^.*)(\[.*\])(\[.*\])(.*)', l)
+                if len(rl.group(2)) > 2:
+                    pdflines.append(''.join(rl.group(1, 2, 4))+'\n')
+                else:
+                    pdflines.append(''.join(rl.group(1, 4))+'\n')
+            else:
+                pdflines.append(l)
+        with open(os.path.join(localdir, 'header_pdflatex.tex'), 'w') as p:
+            p.writelines(pdflines)
+        
+        headerin = get_input_string('header_pdflatex', get_in_path(localdir, builddir, pathtype), flatten=flatten)
     else:
         headerin = ''
 
     if not headerin and not preamblein:
         print("Neither preable nor header found!  Proceeding, but that's rather weird")
-
 
     if copy_figs:
         bibloc_abs = os.path.join(get_in_path(localdir, builddir, 'abs'), 'bibliography', 'biblio') + '.bib'
