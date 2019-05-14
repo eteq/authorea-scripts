@@ -1,0 +1,20 @@
+---
+version: 2
+multicolumn: false
+web-width: 500px
+align: center
+float: h!
+grid:
+  rows: 1
+  columns: 1
+  grid_elements:
+  - path: figures/scatterplot/scatterplot.png
+    type: static
+    from:
+    - 1
+    - 1
+    to:
+    - 1
+    - 1
+    url: "/users/263225/articles/372534/master/file/figures/scatterplot/scatterplot.png"
+    folder_url: "/users/263225/articles/372534/master/folder/figures/scatterplot"

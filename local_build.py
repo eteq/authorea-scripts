@@ -30,9 +30,13 @@ import sys
 import shutil
 import subprocess
 
+from pypandoc import convert_file
 
 #lots of dobule-{}'s are here because we use it as a formatting template below
 MAIN_TEMPLATE = r"""
+\documentclass[12pt]{{article}}
+\usepackage{{graphicx}}
+
 {preamblein}
 
 {headerin}
@@ -211,6 +215,7 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 pass  # html files aren't latex-able
             elif ls.startswith('figures'):
+                ls = ls + ls.lstrip('figures')
                 inpath = get_in_path(localdir, builddir, pathtype)
                 sectioninputs.append(get_figure_string(ls, localdir, inpath, flatten=flatten,
                                                        copyto=builddir if copy_figs else False))
@@ -238,25 +243,26 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
 
     if dobuild:
         #now actually run latex/bibtex
-        args = [latex_exec, outname + '.tex']
+        buildargs = [latex_exec, outname + '.tex']
         print('\n\RUNNING THIS COMMAND: "{0}"\n'.format(' '.join([latex_exec, outname + '.tex'])))
-        subprocess.check_call(args, cwd=builddir)
+        subprocess.check_call(buildargs, cwd=builddir)
         if dobibtex:
-            args = [bibtex_exec, outname]
+            breakpoint()
+            buildargs = [bibtex_exec, outname]
             print('\n\RUNNING THIS COMMAND: "{0}"\n'.format(' '.join([latex_exec, outname + '.tex'])))
-            subprocess.check_call(args, cwd=builddir)
+            subprocess.check_call(buildargs, cwd=builddir)
         for _ in range(npostbibcalls):
-            args = [latex_exec, outname + '.tex']
+            buildargs = [latex_exec, outname + '.tex']
             print('\n\RUNNING THIS COMMAND: "{0}"\n'.format(' '.join([latex_exec, outname + '.tex'])))
-            subprocess.check_call(args, cwd=builddir)
+            subprocess.check_call(buildargs, cwd=builddir)
 
         #launch the result if necessary
         resultfn = outtexpath[:-4] + ('.pdf' if 'pdf' in latex_exec else '.dvi')
         if openwith:
-            args = openwith.split(' ')
-            args.append(resultfn)
-            print('\nLaunching as:' + str(args), '\n')
-            subprocess.check_call(args)
+            buildargs = openwith.split(' ')
+            buildargs.append(resultfn)
+            print('\nLaunching as:' + str(buildargs), '\n')
+            subprocess.check_call(buildargs)
         else:
             msg = '\nBuild completed.  You can see the result in "{0}": "{1}"'
             print(msg.format(builddir, resultfn), '\n')
@@ -265,7 +271,7 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
         print(msg.format(os.path.join(builddir, outname)))
 
 
-if __name__ == '__main__':
+def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Local builder for authorea papers.')
@@ -317,6 +323,9 @@ if __name__ == '__main__':
 
     pathtype = None
 
+    convert_file(os.path.join(args.localdir, 'title.html'),
+                 'latex', outputfile=os.path.join(args.localdir, 'title.tex'))
+
     if args.flatten and (args.rellinks or args.abslinks):
         print('You cannot use both "--flatten" and either "--relative-links" '
               'or "--absolute-links".')
@@ -337,3 +346,7 @@ if __name__ == '__main__':
                          args.n_runs_after_bibtex, args.open_with,
                          args.titleinput, args.dobuild, pathtype, args.flatten,
                          args.copy_figs)
+
+
+if __name__ == "__main__":
+    main()

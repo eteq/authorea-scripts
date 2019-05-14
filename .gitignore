@@ -55,3 +55,8 @@ docs/_build/
 
 # PyBuilder
 target/
+
+.tags
+README.rst
+test/TestDocument/Build/
+test/TestDocument/title.tex
