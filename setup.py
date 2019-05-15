@@ -18,11 +18,13 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        'pypandoc'
+        'pypandoc',
+        'panflute'
         ],
     entry_points='''
         [console_scripts]
-        build-authorea-latex=local_build:main
+        build-authorea-latex=authorea_scripts.local_build:main
+        stripreftags=authorea_scripts.stripreftags:main
     ''',
     zip_safe=False
     )

@@ -36,17 +36,23 @@ from pypandoc import convert_file
 MAIN_TEMPLATE = r"""
 \documentclass[12pt]{{article}}
 \usepackage{{graphicx}}
+\usepackage{{hyperref}}
+\usepackage{{natbib}}
+\usepackage{{latexml}}
+
+\let\cite\{citecommand}
 
 {preamblein}
 
 {headerin}
 
-\begin{{document}}
-
 {titlecontent}
+
+\begin{{document}}
 
 {sectioninputs}
 
+\bibliographystyle{{{bibstyle}}}
 \bibliography{{{bibloc}}}{{}}
 
 \end{{document}}
@@ -61,7 +67,7 @@ FIGURE_TEMPLATE = r"""
 \end{<figure_env>}
 """.replace('{', '{{').replace('}', '}}').replace('<', '{').replace('>', '}')
 
-FIGURE_DEFAULTS = {'placement': '', 'width': '1\columnwidth', 'figure_env': 'figure'}
+FIGURE_DEFAULTS = {'placement': '', 'width': '1\columnwidth', 'figure_env': 'figure', 'caption': ''}
 
 
 def get_input_string(filename, localdir, quotepath=True, flatten=False):
@@ -79,7 +85,7 @@ def get_input_string(filename, localdir, quotepath=True, flatten=False):
             quote_chr = '"'
         else:
             quote_chr = ''
-        return r'\input{' + quote_chr + os.path.join(localdir, filename) + quote_chr + '}'
+        return r'\input{' + os.path.join(localdir, filename) + '}'
 
 
 def get_figure_string(filename, localdir, inputdir, flatten=False, copyto=False):
@@ -89,8 +95,9 @@ def get_figure_string(filename, localdir, inputdir, flatten=False, copyto=False)
 
     fignamebase = os.path.splitext(figname)[0]
     figfn = os.path.join(inputdir, filename)
-    pdffn = os.path.join(localdir, figdir, fignamebase + '.pdf')
-    epsfn = os.path.join(localdir, figdir, fignamebase + '.eps')
+    pngfn = os.path.join(localdir, figdir, fignamebase, fignamebase + '.png')
+    pdffn = os.path.join(localdir, figdir, fignamebase, fignamebase + '.pdf')
+    epsfn = os.path.join(localdir, figdir, fignamebase, fignamebase + '.eps')
 
     if copyto:
         figpath = os.path.join(localdir, filename)
@@ -100,20 +107,31 @@ def get_figure_string(filename, localdir, inputdir, flatten=False, copyto=False)
         elif os.path.exists(epsfn):
             figpath = epsfn
             figfn = fignamebase
+        elif os.path.exists(pngfn):
+            figpath = pngfn
+            figfn = fignamebase
         elif os.path.exists(figpath):
             figfn = figname
         else:
             raise IOError('Could not find figure file {}'.format(figpath))
         shutil.copy(figpath, os.path.join(copyto, os.path.split(figpath)[1]))
-
     else:
-        if os.path.exists(pdffn) or os.path.exists(epsfn):
-            figfn = os.path.join(inputdir, figdir, fignamebase)
-
+        if (   os.path.exists(pdffn) 
+            or os.path.exists(epsfn)
+            or os.path.exists(pngfn)
+           ):
+            figfn = os.path.join(inputdir, figdir, fignamebase, fignamebase)
 
     if os.path.exists(os.path.join(localdir, figdir, 'caption.tex')):
         capinput = get_input_string('caption', os.path.join(inputdir, figdir), False, flatten=flatten)
         caption = r'\caption{ \protect' + capinput.strip() + '}'
+    elif os.path.exists(
+        os.path.join(localdir, figdir, 'caption.html')
+        ):
+        caption = convert_file(
+            os.path.join(localdir, figdir, 'caption.html'),
+            'latex', format='html', filters=['stripreftags'], 
+            )
     else:
         caption = ''
 
@@ -130,6 +148,7 @@ def get_figure_string(filename, localdir, inputdir, flatten=False, copyto=False)
                 figopts[k] = v
         if len(optsjson) != 0:
             raise ValueError('Entries in "{0}" that were not understood: {1}'.format(optsfn, optsjson))
+    figopts['caption'] = caption
 
     figopts.update(locals())
     return FIGURE_TEMPLATE.format(**figopts)
@@ -162,7 +181,8 @@ def get_in_path(localdir, builddir, pathtype=None):
 
 def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                          usetitle, dobibtex, npostbibcalls, openwith, titleinput,
-                         dobuild, pathtype, flatten, copy_figs):
+                         dobuild, pathtype, flatten, copy_figs, bibstyle,
+                         citecommand):
     if not os.path.exists(builddir):
         os.mkdir(builddir)
 
@@ -189,18 +209,19 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
         shutil.copy(bibloc_abs, os.path.join(builddir, os.path.split(bibloc_abs)[1]))
         bibloc = 'biblio'
     else:
-        bibloc = os.path.join(get_in_path(localdir, builddir, pathtype), 'bibliography', 'biblio')
+        bibloc = os.path.join(get_in_path(localdir, builddir, pathtype), 'bibliography', 'biblio') + '.bib'
 
     titlecontent = []
+    sectioninputs = []
     if usetitle:
         if titleinput:
             titlestr = get_input_string('title', get_in_path(localdir, builddir, pathtype), flatten=flatten)
         else:
             with open(os.path.join(get_in_path(localdir, builddir, 'abs'), 'title.tex')) as f:
                 titlestr = f.read()
-        titlecontent.append(r'\title{' + titlestr + '}')
+        titlecontent.append(r'\title{' + titlestr.strip('\n') + '}')
+        sectioninputs.append('\maketitle\n')
 
-    sectioninputs = []
     with open(os.path.join(localdir, 'layout.md')) as f:
         for l in f:
             ls = l.strip()
@@ -213,7 +234,10 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                 titlein = get_input_string('abstract', get_in_path(localdir, builddir, pathtype), flatten=flatten)
                 titlecontent.append(r'\begin{abstract}' + titlein  + '\end{abstract}')
             elif ls.endswith('.html') or ls.endswith('.htm'):
-                pass  # html files aren't latex-able
+                html_to_tex = convert_file(
+                    os.path.join(localdir, ls),
+                    'latex', filters=['stripreftags'])
+                sectioninputs.append(html_to_tex)
             elif ls.startswith('figures'):
                 ls = ls + ls.lstrip('figures')
                 inpath = get_in_path(localdir, builddir, pathtype)
@@ -247,7 +271,6 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
         print('\n\RUNNING THIS COMMAND: "{0}"\n'.format(' '.join([latex_exec, outname + '.tex'])))
         subprocess.check_call(buildargs, cwd=builddir)
         if dobibtex:
-            breakpoint()
             buildargs = [bibtex_exec, outname]
             print('\n\RUNNING THIS COMMAND: "{0}"\n'.format(' '.join([latex_exec, outname + '.tex'])))
             subprocess.check_call(buildargs, cwd=builddir)
@@ -318,6 +341,11 @@ def main():
     parser.add_argument('--copy-figs', '-c', action='store_true',
                         help='Copy figures and any bib files into the build '
                              'directory and set includes to point to those copies.')
+    parser.add_argument('--bibstyle', nargs='?', default='apa',
+                        help='The bibliography style to use')
+    parser.add_argument('--citecommand', nargs='?', default='citep',
+                        help='The primary natbib citation command to use.'
+                             ' Omit leading backslash.')
 
     args = parser.parse_args()
 
@@ -345,7 +373,7 @@ def main():
                          args.filename, args.usetitle, args.usebibtex,
                          args.n_runs_after_bibtex, args.open_with,
                          args.titleinput, args.dobuild, pathtype, args.flatten,
-                         args.copy_figs)
+                         args.copy_figs, args.bibstyle, args.citecommand)
 
 
 if __name__ == "__main__":
