@@ -10,7 +10,7 @@ setup(
     name='authorea-scripts',
     version='0.0.2',
     py_modules=['build-authorea'],
-    description=('Tools for working locally with Authorea projects'),
+    description='Tools for working locally with Authorea projects',
     url='https://github.com/mpjuers/authorea-scripts',
     author='Mark Juers',
     author_email='mpjuers@indiana.edu',
@@ -26,5 +26,10 @@ setup(
         build-authorea-latex=authorea_scripts.local_build:main
         stripreftags=authorea_scripts.stripreftags:main
     ''',
-    zip_safe=False
+    zip_safe=False,
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
+        ]
     )
