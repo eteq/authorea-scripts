@@ -34,13 +34,57 @@ from pypandoc import convert_file
 
 #lots of dobule-{}'s are here because we use it as a formatting template below
 MAIN_TEMPLATE = r"""
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{{unicode}}{{hyperref}}
+\PassOptionsToPackage{{hyphens}}{{url}}
 \documentclass[12pt]{{article}}
 \usepackage{{graphicx}}
 \usepackage{{hyperref}}
 \usepackage{{natbib}}
 \usepackage{{latexml}}
 
-\let\cite\{citecommand}
+% From pandoc
+\usepackage{{lmodern}}
+\usepackage{{amssymb,amsmath}}
+\usepackage{{ifxetex,ifluatex}}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{{fontenc}}
+  \usepackage[utf8]{{inputenc}}
+  \usepackage{{textcomp}} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{{unicode-math}}
+  \defaultfontfeatures{{Scale=MatchLowercase}}
+  \defaultfontfeatures[\rmfamily]{{Ligatures=TeX,Scale=1}}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{{upquote.sty}}{{\usepackage{{upquote}}}}{{}}
+\IfFileExists{{microtype.sty}}{{% use microtype if available
+  \usepackage[]{{microtype}}
+  \UseMicrotypeSet[protrusion]{{basicmath}} % disable protrusion for tt fonts
+}}{{}}
+\makeatletter
+\@ifundefined{{KOMAClassName}}{{% if non-KOMA class
+  \IfFileExists{{parskip.sty}}{{%
+    \usepackage{{parskip}}
+  }}{{% else
+    \setlength{{\parindent}}{{0pt}}
+    \setlength{{\parskip}}{{6pt plus 2pt minus 1pt}}}}
+}}{{% if KOMA class
+  \KOMAoptions{{parskip=half}}}}
+\makeatother
+\usepackage{{xcolor}}
+\IfFileExists{{xurl.sty}}{{\usepackage{{xurl}}}}{{}} % add URL line breaks if available
+\IfFileExists{{bookmark.sty}}{{\usepackage{{bookmark}}}}{{\usepackage{{hyperref}}}}
+\hypersetup{{
+  hidelinks,
+  pdfcreator={{LaTeX via pandoc}}}}
+\urlstyle{{same}} % disable monospaced font for URLs
+\setlength{{\emergencystretch}}{{3em}} % prevent overfull lines
+\providecommand{{\tightlist}}{{%
+  \setlength{{\itemsep}}{{0pt}}\setlength{{\parskip}}{{0pt}}}}
+\setcounter{{secnumdepth}}{{-\maxdimen}} % remove section numbering
+
+\date{{}}
 
 {preamblein}
 
@@ -130,7 +174,7 @@ def get_figure_string(filename, localdir, inputdir, flatten=False, copyto=False)
         ):
         caption = convert_file(
             os.path.join(localdir, figdir, 'caption.html'),
-            'latex', format='html', filters=['stripreftags'], 
+            'latex', format='html+tex_math_dollars', filters=['stripreftags'], 
             )
     else:
         caption = ''
@@ -236,7 +280,7 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 html_to_tex = convert_file(
                     os.path.join(localdir, ls),
-                    'latex', filters=['stripreftags'])
+                    'latex', format='html+tex_math_dollars', filters=['stripreftags'])
                 sectioninputs.append(html_to_tex)
             elif ls.startswith('figures'):
                 ls = ls + ls.lstrip('figures')
@@ -352,7 +396,7 @@ def main():
     pathtype = None
 
     convert_file(os.path.join(args.localdir, 'title.html'),
-                 'latex', outputfile=os.path.join(args.localdir, 'title.tex'))
+                 'latex', format='html+tex_math_dollars', outputfile=os.path.join(args.localdir, 'title.tex'))
 
     if args.flatten and (args.rellinks or args.abslinks):
         print('You cannot use both "--flatten" and either "--relative-links" '
