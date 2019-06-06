@@ -42,6 +42,7 @@ MAIN_TEMPLATE = r"""
 \usepackage{{hyperref}}
 \usepackage{{natbib}}
 \usepackage{{latexml}}
+\usepackage{{setspace}}
 
 % From pandoc
 \usepackage{{lmodern}}
@@ -62,16 +63,7 @@ MAIN_TEMPLATE = r"""
   \usepackage[]{{microtype}}
   \UseMicrotypeSet[protrusion]{{basicmath}} % disable protrusion for tt fonts
 }}{{}}
-\makeatletter
-\@ifundefined{{KOMAClassName}}{{% if non-KOMA class
-  \IfFileExists{{parskip.sty}}{{%
-    \usepackage{{parskip}}
-  }}{{% else
-    \setlength{{\parindent}}{{0pt}}
-    \setlength{{\parskip}}{{6pt plus 2pt minus 1pt}}}}
-}}{{% if KOMA class
-  \KOMAoptions{{parskip=half}}}}
-\makeatother
+{parskip}
 \usepackage{{xcolor}}
 \IfFileExists{{xurl.sty}}{{\usepackage{{xurl}}}}{{}} % add URL line breaks if available
 \IfFileExists{{bookmark.sty}}{{\usepackage{{bookmark}}}}{{\usepackage{{hyperref}}}}
@@ -93,6 +85,8 @@ MAIN_TEMPLATE = r"""
 {titlecontent}
 
 \begin{{document}}
+
+{spacing}
 
 {sectioninputs}
 
@@ -226,7 +220,33 @@ def get_in_path(localdir, builddir, pathtype=None):
 def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                          usetitle, dobibtex, npostbibcalls, openwith, titleinput,
                          dobuild, pathtype, flatten, copy_figs, bibstyle,
-                         citecommand):
+                         citecommand, spacing, noparskip):
+
+    if noparskip:
+        parskip = ''
+    else:
+        parskip = r''' 
+        \makeatletter
+        \@ifundefined{{KOMAClassName}}{{% if non-KOMA class
+          \IfFileExists{{parskip.sty}}{{%
+            \usepackage{{parskip}}
+          }}{{% else
+            \setlength{{\parindent}}{{0pt}}
+            \setlength{{\parskip}}{{6pt plus 2pt minus 1pt}}}}
+        }}{{% if KOMA class
+          \KOMAoptions{{parskip=half}}}}
+        \makeatother
+        '''
+
+    if spacing == 'single':
+        spacing = ''
+    elif spacing == 'half':
+        spacing = r'\onehalfspacing'
+    elif spacing == 'double':
+        spacing = r'\doublespacing'
+    else:
+        raise ValueError('spacing must be "single, half, or double"')
+
     if not os.path.exists(builddir):
         os.mkdir(builddir)
 
@@ -390,6 +410,12 @@ def main():
     parser.add_argument('--citecommand', nargs='?', default='citep',
                         help='The primary natbib citation command to use.'
                              ' Omit leading backslash.')
+    parser.add_argument('--spacing', nargs='?', default='half',
+                        help='Spacing to use for the document. "single", "half", or "double"'
+                             ' "half" is one and one-half')
+    parser.add_argument('--noparskip', action='store_true',
+                        help='Suppresses loading parskip class for normal'
+                             ' indentation rules.')
 
     args = parser.parse_args()
 
@@ -417,7 +443,8 @@ def main():
                          args.filename, args.usetitle, args.usebibtex,
                          args.n_runs_after_bibtex, args.open_with,
                          args.titleinput, args.dobuild, pathtype, args.flatten,
-                         args.copy_figs, args.bibstyle, args.citecommand)
+                         args.copy_figs, args.bibstyle, args.citecommand,
+                         args.spacing, args.noparskip)
 
 
 if __name__ == "__main__":
