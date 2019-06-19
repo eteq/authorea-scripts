@@ -58,7 +58,7 @@ target/
 
 .tags
 README.rst
-test/TestDocument/Build/
-test/TestDocument/title.tex
+**/Build/
+**/title.tex
 Session.vim
 .tags
