@@ -37,7 +37,9 @@ MAIN_TEMPLATE = r"""
 % Options for packages loaded elsewhere
 \PassOptionsToPackage{{unicode}}{{hyperref}}
 \PassOptionsToPackage{{hyphens}}{{url}}
-\documentclass[12pt]{{article}}
+
+{preamblein}
+
 \usepackage{{graphicx}}
 \usepackage{{hyperref}}
 \usepackage{{natbib}}
@@ -77,8 +79,6 @@ MAIN_TEMPLATE = r"""
 \setcounter{{secnumdepth}}{{-\maxdimen}} % remove section numbering
 
 \date{{}}
-
-{preamblein}
 
 {headerin}
 
@@ -227,14 +227,14 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
     else:
         parskip = r''' 
         \makeatletter
-        \@ifundefined{{KOMAClassName}}{{% if non-KOMA class
-          \IfFileExists{{parskip.sty}}{{%
-            \usepackage{{parskip}}
-          }}{{% else
-            \setlength{{\parindent}}{{0pt}}
-            \setlength{{\parskip}}{{6pt plus 2pt minus 1pt}}}}
-        }}{{% if KOMA class
-          \KOMAoptions{{parskip=half}}}}
+        \@ifundefined{KOMAClassName}{% if non-KOMA class
+          \IfFileExists{parskip.sty}{%
+            \usepackage{parskip}
+          }{% else
+            \setlength{\parindent}{0pt}
+            \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+        }{% if KOMA class
+          \KOMAoptions{parskip=half}}
         \makeatother
         '''
 
@@ -258,7 +258,7 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
     if os.path.exists(os.path.join(localdir, 'preamble.tex')):
         preamblein = get_input_string('preamble', get_in_path(localdir, builddir, pathtype), flatten=flatten)
     else:
-        preamblein = ''
+        preamblein = r'\documentclass[12pt]{article}'
     if os.path.exists(os.path.join(localdir, 'header.tex')):
         headerin = get_input_string('header', get_in_path(localdir, builddir, pathtype), flatten=flatten)
     else:

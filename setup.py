@@ -8,7 +8,7 @@ import pypandoc
 pypandoc.convert_file('README.md', 'rst', outputfile='README.rst')
 setup(
     name='authorea-scripts',
-    version='0.0.3',
+    version='0.0.4',
     py_modules=['build-authorea'],
     description='Tools for working locally with Authorea projects',
     url='https://github.com/mpjuers/authorea-scripts',
