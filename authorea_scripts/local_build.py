@@ -80,6 +80,8 @@ MAIN_TEMPLATE = r"""
 
 \date{{}}
 
+\let\cite\{citecommand}
+
 {headerin}
 
 {titlecontent}

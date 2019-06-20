@@ -9,3 +9,7 @@
 
 - Added argument to control spacing.
 - Added ability to not use parskip class for standard indentation rules.
+
+## 0.0.5
+
+- Fixed custom citation command.
