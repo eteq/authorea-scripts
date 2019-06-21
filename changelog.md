@@ -13,3 +13,7 @@
 ## 0.0.5
 
 - Fixed custom citation command.
+
+## 0.0.6
+
+- Added markdown support.

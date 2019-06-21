@@ -304,6 +304,11 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                     os.path.join(localdir, ls),
                     'latex', format='html+tex_math_dollars', filters=['stripreftags'])
                 sectioninputs.append(html_to_tex)
+            elif ls.endswith('.md'):
+                md_to_tex = convert_file(
+                    os.path.join(localdir, ls),
+                    'latex', format='markdown+tex_math_dollars')
+                sectioninputs.append(md_to_tex)
             elif ls.startswith('figures'):
                 ls = ls + ls.lstrip('figures')
                 inpath = get_in_path(localdir, builddir, pathtype)
