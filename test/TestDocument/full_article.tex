@@ -4,6 +4,7 @@
 \usepackage{setspace}
 \usepackage{parskip}
 \usepackage{titlesec}
+\usepackage{placeins}
 \usepackage{xcolor}
 \usepackage{lineno}
 
@@ -81,6 +82,7 @@
 \affil[1]{Indiana University}
 % Add here any LaTeX macros you would like to load in all document blocks
 % \def\example{This is an example macro.}
+\setcounter{secnumdepth}{2}
 
 
 % -----
@@ -157,6 +159,8 @@ An inline equation:~\(\int_0^xf\left(t\right)\mathrm{d}t\). And a display equati
 
 Some troublesome dollar signs: \$100, \$200, \$300
 
+Section~{\ref{850151}}
+
 \section*{Some markdown}\label{some-markdown}
 
 Once, there was a cuttlefish, who we'll call \emph{Sepia apama}. Now,
@@ -172,6 +176,7 @@ some math: \(a + b = c\).\selectlanguage{english}
 \end{figure}
 
 \selectlanguage{english}
+\FloatBarrier
 \section*{References}\sloppy
 \phantomsection
 \label{csl:1}Ebert, D. (2013). {The epidemiology and evolution of symbionts with mixed-mode transmission}. \textit{Annual Review of Ecology, Evolution, and Systematics}, \textit{44}(1), 623–643. \url{https://doi.org/10.1146/annurev-ecolsys-032513-100555}
