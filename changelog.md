@@ -17,3 +17,7 @@
 ## 0.0.6
 
 - Added markdown support.
+
+## 0.0.7
+
+- Fixed handling of captions.

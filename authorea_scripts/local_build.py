@@ -41,10 +41,11 @@ MAIN_TEMPLATE = r"""
 {preamblein}
 
 \usepackage{{graphicx}}
-\usepackage{{hyperref}}
 \usepackage{{natbib}}
 \usepackage{{latexml}}
 \usepackage{{setspace}}
+\usepackage{{hyperref}}
+\usepackage[english]{{babel}}
 
 % From pandoc
 \usepackage{{lmodern}}
@@ -156,22 +157,20 @@ def get_figure_string(filename, localdir, inputdir, flatten=False, copyto=False)
             raise IOError('Could not find figure file {}'.format(figpath))
         shutil.copy(figpath, os.path.join(copyto, os.path.split(figpath)[1]))
     else:
-        if (   os.path.exists(pdffn) 
+        if (   os.path.exists(pdffn)
             or os.path.exists(epsfn)
             or os.path.exists(pngfn)
-           ):
+        ):
             figfn = os.path.join(inputdir, figdir, fignamebase, fignamebase)
 
     if os.path.exists(os.path.join(localdir, figdir, 'caption.tex')):
         capinput = get_input_string('caption', os.path.join(inputdir, figdir), False, flatten=flatten)
         caption = r'\caption{ \protect' + capinput.strip() + '}'
-    elif os.path.exists(
-        os.path.join(localdir, figdir, 'caption.html')
-        ):
+    elif os.path.exists(os.path.join(localdir, figdir, 'caption.html')):
         caption = convert_file(
             os.path.join(localdir, figdir, 'caption.html'),
-            'latex', format='html+tex_math_dollars', filters=['stripreftags'], 
-            )
+            'latex', format='html+tex_math_dollars', filters=['stripreftags']
+        )
     else:
         caption = ''
 

@@ -7,7 +7,6 @@ import re
 import panflute as pf
 
 
-
 def multireplace(string, replacements):
     """
     Given a string and a replacement map, it returns the replaced string.
@@ -44,20 +43,28 @@ def destring(elem, doc, replacements):
 
 
 def labels(elem, doc, replacements):
-    try:
-        if 'label' in elem.attributes.keys():
-            return (pf.Plain(
-                pf.RawInline('\\caption{' + '\\label{'
-                             + elem.attributes['label'] + '}',
-                             format='latex'),
-                *elem.content[0].content,
-                pf.Str('}')
-                ))
-    except AttributeError:
-        pass
-    # Extra section headers with not content can cause an IndexError.
-    except IndexError:
-        pass
+    if (       isinstance(elem, pf.Header)
+            or isinstance(elem, pf.Div)):
+        try:
+            if 'label' in elem.attributes:
+                elem.identifier = label = elem.attributes['label']
+                mytext = (r'\caption{\hypertarget{'
+                          + label
+                          + r'}{\label{'
+                          + label
+                          + r'}}')
+                first_child = elem.content[0]
+                first_child.content.insert(0, pf.RawInline(mytext, format='latex'))
+                first_child.content.append(pf.RawInline(r'}', format='latex'))
+                return (elem if isinstance(elem, pf.Header)
+                        else pf.Div(first_child))
+        except AttributeError:
+            pass
+        # Extra section headers with not content can cause an IndexError.
+        except IndexError:
+            pass
+        except KeyError:
+            pass
 
 
 def main(doc=None):
