@@ -294,10 +294,12 @@ def build_authorea_latex(localdir, builddir, latex_exec, bibtex_exec, outname,
                 pass
             elif ls in ('posttitle.tex', 'title.tex', 'preamble.tex', 'header.tex'):
                 pass # skip any that have been processed above
-            elif ls in ('abstract.tex'):
+            elif ls in ('abstract.html'):
                 # add abstract to title content
-                titlein = get_input_string('abstract', get_in_path(localdir, builddir, pathtype), flatten=flatten)
-                titlecontent.append(r'\begin{abstract}' + titlein  + '\end{abstract}')
+                html_to_tex = convert_file(
+                    os.path.join(localdir, ls),
+                    'latex', format='html+tex_math_dollars', filters=['stripreftags'])
+                sectioninputs.append(r'\begin{abstract}' + '\n' + html_to_tex + r'\end{abstract}')
             elif ls.endswith('.html') or ls.endswith('.htm'):
                 html_to_tex = convert_file(
                     os.path.join(localdir, ls),
